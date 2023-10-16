@@ -37,7 +37,8 @@ fn capture_packets(interface: datalink::NetworkInterface) {
             Ok(packet) => {
                 if let Some(ethernet_packet) = EthernetPacket::new(packet) {
                     println!("---");
-                    info_packet::process_packet_by_type(&interface.name, &ethernet_packet)
+                    let packet_info = info_packet::PacketInfos::new(&interface.name, &ethernet_packet);
+                    println!("{}", packet_info);
                 }
             }
             Err(e) => {
