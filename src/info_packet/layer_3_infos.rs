@@ -3,31 +3,11 @@ use pnet::packet::{
     ipv6::Ipv6Packet, 
     ipv4::Ipv4Packet, 
     arp::ArpPacket, Packet};
-
-
+    
 // Define the Layer3Infos struct
 pub struct Layer3Infos {
     pub ip_source: String,
     pub ip_destination: String,
-}
-
-pub fn get_layer_3_infos(ethernet_packet: &EthernetPacket<'_>) -> Layer3Infos{
-    match ethernet_packet.get_ethertype() {
-        EtherTypes::Ipv6 => Ipv6Handler::handle_packet(ethernet_packet.payload()),
-        EtherTypes::Ipv4 => Ipv4Handler::handle_packet(ethernet_packet.payload()),
-        EtherTypes::Arp => ArpHandler::handle_packet(ethernet_packet.payload()),
-        _ => {
-            // General case for all other EtherTypes
-            println!(
-                "Unknown or unsupported packet type: {:?}",
-                ethernet_packet.get_ethertype()
-            );
-            Layer3Infos {
-                ip_source: String::from("N/A"),
-                ip_destination: String::from("N/A"),
-            }
-        }
-    }
 }
 
 struct Ipv4Handler;
@@ -35,11 +15,11 @@ struct Ipv6Handler;
 struct ArpHandler;
 
 trait HandlePacket {
-    fn handle_packet(data: &[u8]) -> Layer3Infos;
+    fn get_layer_3(data: &[u8]) -> Layer3Infos;
 }
 
 impl HandlePacket for Ipv4Handler {
-    fn handle_packet(data: &[u8]) -> Layer3Infos{
+    fn get_layer_3(data: &[u8]) -> Layer3Infos{
         if let Some(ipv4_packet) = Ipv4Packet::new(data) {
             println!(
                 "Layer 3: IPv4 packet: source {} destination {} => {} {}",
@@ -63,10 +43,8 @@ impl HandlePacket for Ipv4Handler {
     }
 }
 
-
-
 impl HandlePacket for Ipv6Handler {
-    fn handle_packet(data: &[u8]) -> Layer3Infos{
+    fn get_layer_3(data: &[u8]) -> Layer3Infos{
         if let Some(ipv6_packet) = Ipv6Packet::new(data) {
             println!(
                 "Layer 3: IPv6 packet: source {} destination {} => {} {}",
@@ -91,7 +69,7 @@ impl HandlePacket for Ipv6Handler {
 }
 
 impl HandlePacket for ArpHandler {
-    fn handle_packet(data: &[u8]) -> Layer3Infos{
+    fn get_layer_3(data: &[u8]) -> Layer3Infos{
         if let Some(arp_packet) = ArpPacket::new(data) {
             println!(
                 "Layer 2: arp packet: source {} destination {} => {:?} {} {} {:?} {}",
@@ -109,6 +87,25 @@ impl HandlePacket for ArpHandler {
             }
         } else {
             // Handle the case when the data is not a valid IPv4 packet
+            Layer3Infos {
+                ip_source: String::from("N/A"),
+                ip_destination: String::from("N/A"),
+            }
+        }
+    }
+}
+
+pub fn get_layer_3_infos(ethernet_packet: &EthernetPacket<'_>) -> Layer3Infos{
+    match ethernet_packet.get_ethertype() {
+        EtherTypes::Ipv6 => Ipv6Handler::get_layer_3(ethernet_packet.payload()),
+        EtherTypes::Ipv4 => Ipv4Handler::get_layer_3(ethernet_packet.payload()),
+        EtherTypes::Arp => ArpHandler::get_layer_3(ethernet_packet.payload()),
+        _ => {
+            // General case for all other EtherTypes
+            println!(
+                "Unknown or unsupported packet type: {:?}",
+                ethernet_packet.get_ethertype()
+            );
             Layer3Infos {
                 ip_source: String::from("N/A"),
                 ip_destination: String::from("N/A"),
