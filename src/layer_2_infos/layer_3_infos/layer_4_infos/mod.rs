@@ -20,10 +20,7 @@ trait HandlePacketTypes {
 impl HandlePacketTypes for TcpHandler {
     fn get_layer_4(data: &[u8]) -> Layer4Infos {
         if let Some(l_4) = TcpPacket::new(data) {
-            Layer4Infos {
-                port_source: l_4.get_source().to_string(),
-                port_destination: l_4.get_destination().to_string(),
-            }
+            get_port_from_tcp_packet(l_4)
         } else {
             get_n_a_4_info()
         }
@@ -33,7 +30,7 @@ impl HandlePacketTypes for TcpHandler {
 impl HandlePacketTypes for UdpHandler {
     fn get_layer_4(data: &[u8]) -> Layer4Infos {
         if let Some(l_4) = UdpPacket::new(data) {
-            get_port_from_tcp_packet(l_4)
+            get_port_from_udp_packet(l_4)
         } else {
             get_n_a_4_info()
         }
