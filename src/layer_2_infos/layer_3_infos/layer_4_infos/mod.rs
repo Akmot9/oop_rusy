@@ -3,11 +3,15 @@ use pnet::packet::{
     ipv6::Ipv6Packet, 
     ipv4::Ipv4Packet, 
     arp::ArpPacket, Packet};
-    
+
+mod layer_4_infos;
+use layer_3_infos::layer_4_infos::Layer4Infos;
+
 // Define the Layer3Infos struct
 pub struct Layer3Infos {
     pub ip_source: String,
     pub ip_destination: String,
+    layer_4_infos: Layer4Infos,
 }
 
 struct Ipv4Handler;

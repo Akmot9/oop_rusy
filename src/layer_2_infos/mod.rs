@@ -3,15 +3,16 @@ use std::fmt;
 use pnet::packet::ethernet::EthernetPacket;
 use pnet::util::MacAddr;
 
-use crate::info_packet::layer_3_infos::{get_layer_3_infos, Layer3Infos};
-mod layer_3_infos;
+use layer_3_infos::{get_layer_3_infos, Layer3Infos};
+
+
 
 pub struct PacketInfos {
     mac_address_source: MacAddr,
     mac_address_destination: MacAddr,
     interface: String,
     l_3_protocol: String,
-    layer_3_infos: Layer3Infos
+    layer_3_infos: Layer3Infos,
 }
 
 impl PacketInfos {

@@ -3,7 +3,8 @@ use pnet::datalink::Channel::Ethernet;
 use pnet::packet::ethernet::EthernetPacket;
 use std::thread;
 
-mod info_packet;
+use layer_2_infos::PacketInfos;
+mod layer_2_infos;
 
 fn main() {
     let interfaces = datalink::interfaces();
@@ -37,7 +38,7 @@ fn capture_packets(interface: datalink::NetworkInterface) {
             Ok(packet) => {
                 if let Some(ethernet_packet) = EthernetPacket::new(packet) {
                     println!("---");
-                    let packet_info = info_packet::PacketInfos::new(&interface.name, &ethernet_packet);
+                    let packet_info = PacketInfos::new(&interface.name, &ethernet_packet);
                     println!("{}", packet_info);
                 }
             }
