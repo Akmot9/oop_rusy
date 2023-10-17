@@ -1,119 +1,76 @@
-use pnet::packet::{
-    ethernet::{EthernetPacket, EtherTypes}, 
-    ipv6::Ipv6Packet, 
-    ipv4::Ipv4Packet, 
-    arp::ArpPacket, Packet};
+use pnet::packet::tcp::TcpPacket;
+use pnet::packet::udp::UdpPacket;
+use pnet::packet::ip::{IpNextHeaderProtocols, IpNextHeaderProtocol};
 
-mod layer_4_infos;
-use layer_3_infos::layer_4_infos::Layer4Infos;
+pub struct Layer4Infos {
+    pub port_source: String,
+    pub port_destination: String,
+}
+enum Layer4Paket<'a> {
+    Tcp(TcpPacket<'a>),
+    Udp(UdpPacket<'a>)
+}
+struct TcpHandler;
+struct UdpHandler;
 
-// Define the Layer3Infos struct
-pub struct Layer3Infos {
-    pub ip_source: String,
-    pub ip_destination: String,
-    layer_4_infos: Layer4Infos,
+trait HandlePacketTypes {
+    fn get_layer_4(data: &[u8]) -> Layer4Infos;
 }
 
-struct Ipv4Handler;
-struct Ipv6Handler;
-struct ArpHandler;
-
-trait HandlePacket {
-    fn get_layer_3(data: &[u8]) -> Layer3Infos;
-}
-
-impl HandlePacket for Ipv4Handler {
-    fn get_layer_3(data: &[u8]) -> Layer3Infos{
-        if let Some(ipv4_packet) = Ipv4Packet::new(data) {
-            println!(
-                "Layer 3: IPv4 packet: source {} destination {} => {} {}",
-                ipv4_packet.get_source(),
-                ipv4_packet.get_destination(),
-                ipv4_packet.get_next_level_protocol(),
-                ipv4_packet.get_total_length()
-            );
-            //handle_next_proto_util(data, ipv4_packet.get_next_level_protocol());
-            Layer3Infos { 
-                ip_source: ipv4_packet.get_source().to_string(), 
-                ip_destination: ipv4_packet.get_destination().to_string() 
+impl HandlePacketTypes for TcpHandler {
+    fn get_layer_4(data: &[u8]) -> Layer4Infos {
+        if let Some(l_4) = TcpPacket::new(data) {
+            Layer4Infos {
+                port_source: l_4.get_source().to_string(),
+                port_destination: l_4.get_destination().to_string(),
             }
         } else {
-            // Handle the case when the data is not a valid IPv4 packet
-            Layer3Infos {
-                ip_source: String::from("N/A"),
-                ip_destination: String::from("N/A"),
-            }
+            get_n_a_4_info()
         }
     }
 }
 
-impl HandlePacket for Ipv6Handler {
-    fn get_layer_3(data: &[u8]) -> Layer3Infos{
-        if let Some(ipv6_packet) = Ipv6Packet::new(data) {
-            println!(
-                "Layer 3: IPv6 packet: source {} destination {} => {} {}",
-                ipv6_packet.get_source(),
-                ipv6_packet.get_destination(),
-                ipv6_packet.get_next_header(),
-                ipv6_packet.get_payload_length()
-            );
-            Layer3Infos { 
-                ip_source: ipv6_packet.get_source().to_string(), 
-                ip_destination: ipv6_packet.get_destination().to_string() 
-            }
-            //handle_next_proto_util(data, ipv6_packet.get_next_header());
+impl HandlePacketTypes for UdpHandler {
+    fn get_layer_4(data: &[u8]) -> Layer4Infos {
+        if let Some(l_4) = UdpPacket::new(data) {
+            get_port_from_tcp_packet(l_4)
         } else {
-            // Handle the case when the data is not a valid IPv4 packet
-            Layer3Infos {
-                ip_source: String::from("N/A"),
-                ip_destination: String::from("N/A"),
-            }
+            get_n_a_4_info()
         }
     }
 }
 
-impl HandlePacket for ArpHandler {
-    fn get_layer_3(data: &[u8]) -> Layer3Infos{
-        if let Some(arp_packet) = ArpPacket::new(data) {
-            println!(
-                "Layer 2: arp packet: source {} destination {} => {:?} {} {} {:?} {}",
-                arp_packet.get_sender_hw_addr(),
-                arp_packet.get_target_hw_addr(),
-                arp_packet.get_operation(),
-                arp_packet.get_target_proto_addr(),
-                arp_packet.get_sender_proto_addr(),
-                arp_packet.get_hardware_type(),
-                arp_packet.get_proto_addr_len()
-            );
-            Layer3Infos { 
-                ip_source: arp_packet.get_sender_proto_addr().to_string(), 
-                ip_destination: arp_packet.get_target_proto_addr().to_string() 
-            }
-        } else {
-            // Handle the case when the data is not a valid IPv4 packet
-            Layer3Infos {
-                ip_source: String::from("N/A"),
-                ip_destination: String::from("N/A"),
-            }
-        }
+fn get_port_from_udp_packet(l_4: UdpPacket) -> Layer4Infos{
+    Layer4Infos {
+        port_source: l_4.get_source().to_string(),
+        port_destination: l_4.get_destination().to_string(),
     }
 }
 
-pub fn get_layer_3_infos(ethernet_packet: &EthernetPacket<'_>) -> Layer3Infos{
-    match ethernet_packet.get_ethertype() {
-        EtherTypes::Ipv6 => Ipv6Handler::get_layer_3(ethernet_packet.payload()),
-        EtherTypes::Ipv4 => Ipv4Handler::get_layer_3(ethernet_packet.payload()),
-        EtherTypes::Arp => ArpHandler::get_layer_3(ethernet_packet.payload()),
+fn get_port_from_tcp_packet(l_4: TcpPacket) -> Layer4Infos{
+    Layer4Infos {
+        port_source: l_4.get_source().to_string(),
+        port_destination: l_4.get_destination().to_string(),
+    }
+}
+fn get_n_a_4_info() -> Layer4Infos {
+    Layer4Infos {
+        port_source: String::from("N/A"),
+        port_destination: String::from("N/A"),
+    }
+}
+
+pub fn get_layer_4_infos(proto: IpNextHeaderProtocol, data: &[u8]) -> Layer4Infos{
+    match proto {
+        IpNextHeaderProtocols::Tcp => TcpHandler::get_layer_4(data),
+        IpNextHeaderProtocols::Udp => UdpHandler::get_layer_4(data),
         _ => {
             // General case for all other EtherTypes
             println!(
                 "Unknown or unsupported packet type: {:?}",
-                ethernet_packet.get_ethertype()
+                proto.to_string()
             );
-            Layer3Infos {
-                ip_source: String::from("N/A"),
-                ip_destination: String::from("N/A"),
-            }
+            get_n_a_4_info()
         }
     }
 }

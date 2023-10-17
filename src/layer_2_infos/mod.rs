@@ -4,7 +4,7 @@ use pnet::packet::ethernet::EthernetPacket;
 use pnet::util::MacAddr;
 
 use layer_3_infos::{get_layer_3_infos, Layer3Infos};
-
+mod layer_3_infos;
 
 
 pub struct PacketInfos {
@@ -36,6 +36,9 @@ impl fmt::Display for PacketInfos {
         write!(f, "L 3 proto: {}\n", self.l_3_protocol)?;
         write!(f, "ip_source: {}\n", self.layer_3_infos.ip_source)?;
         write!(f, "ip_destination: {}\n", self.layer_3_infos.ip_destination)?;
+        write!(f, "port_destination: {}\n", self.layer_3_infos.layer_4_infos.port_destination)?;
+        write!(f, "port_source: {}\n", self.layer_3_infos.layer_4_infos.port_source)?;
+        write!(f, "L 4 proto: {}\n", self.layer_3_infos.l_4_protocol)?;
 
         // Format other fields as needed
 
