@@ -40,6 +40,7 @@ fn capture_packets(interface: datalink::NetworkInterface) {
                     println!("---");
                     let packet_info = PacketInfos::new(&interface.name, &ethernet_packet);
                     println!("{}", packet_info);
+                    
                 }
             }
             Err(e) => {
@@ -48,3 +49,4 @@ fn capture_packets(interface: datalink::NetworkInterface) {
         }
     }
 }
+

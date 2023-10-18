@@ -1,5 +1,5 @@
 use pnet::packet::{
-    ethernet::{EthernetPacket, EtherTypes}, 
+    ethernet::{EthernetPacket, EtherTypes::{self}}, 
     ipv6::Ipv6Packet, 
     ipv4::Ipv4Packet, 
     arp::ArpPacket, Packet};
@@ -7,11 +7,11 @@ use pnet::packet::{
 mod layer_4_infos;
 use layer_4_infos::{Layer4Infos, get_layer_4_infos};
 
-// Define the Layer3Infos struct
+#[derive(Debug, Default)]
 pub struct Layer3Infos {
-    pub ip_source: String,
-    pub ip_destination: String,
-    pub l_4_protocol: String,
+    pub ip_source: Option<String>,
+    pub ip_destination: Option<String>,
+    pub l_4_protocol: Option<String>,
     pub layer_4_infos: Layer4Infos,
 }
 
@@ -35,22 +35,13 @@ impl HandlePacket for Ipv4Handler {
             );
             //handle_next_proto_util(data, ipv4_packet.get_next_level_protocol());
             Layer3Infos { 
-                ip_source: ipv4_packet.get_source().to_string(), 
-                ip_destination: ipv4_packet.get_destination().to_string(),
-                l_4_protocol: ipv4_packet.get_next_level_protocol().to_string(),
+                ip_source: Some(ipv4_packet.get_source().to_string()), 
+                ip_destination: Some(ipv4_packet.get_destination().to_string()),
+                l_4_protocol: Some(ipv4_packet.get_next_level_protocol().to_string()),
                 layer_4_infos: get_layer_4_infos(ipv4_packet.get_next_level_protocol(),data), 
             }
         } else {
-            // Handle the case when the data is not a valid IPv4 packet
-            Layer3Infos {
-                ip_source: String::from("N/A"),
-                ip_destination: String::from("N/A"),
-                l_4_protocol: String::from("N/A"),
-                layer_4_infos: Layer4Infos {
-                    port_source: String::from("N/A"),
-                    port_destination: String::from("N/A"),
-                },
-            }
+            Default::default()
         }
     }
 }
@@ -66,23 +57,15 @@ impl HandlePacket for Ipv6Handler {
                 ipv6_packet.get_payload_length()
             );
             Layer3Infos {
-                ip_source: ipv6_packet.get_source().to_string(),
-                ip_destination: ipv6_packet.get_destination().to_string(),
-                l_4_protocol: ipv6_packet.get_next_header().to_string(),
+                ip_source: Some(ipv6_packet.get_source().to_string()),
+                ip_destination: Some(ipv6_packet.get_destination().to_string()),
+                l_4_protocol: Some(ipv6_packet.get_next_header().to_string()),
                 layer_4_infos: get_layer_4_infos(ipv6_packet.get_next_header(), data), 
             }
             //handle_next_proto_util(data, ipv6_packet.get_next_header());
         } else {
             // Handle the case when the data is not a valid IPv4 packet
-            Layer3Infos {
-                ip_source: String::from("N/A"),
-                ip_destination: String::from("N/A"),
-                l_4_protocol: String::from("N/A"),
-                layer_4_infos: Layer4Infos {
-                    port_source: String::from("N/A"),
-                    port_destination: String::from("N/A"),
-                },
-            }
+            Default::default()
         }
     }
 }
@@ -91,35 +74,29 @@ impl HandlePacket for ArpHandler {
     fn get_layer_3(data: &[u8]) -> Layer3Infos{
         if let Some(arp_packet) = ArpPacket::new(data) {
             println!(
-                "Layer 2: arp packet: source {} destination {} => {:?} {} {} {:?} {}",
+                "Layer 2: arp packet: source {} destination {} => {:?} {} {} {:?} {} {}",
                 arp_packet.get_sender_hw_addr(),
                 arp_packet.get_target_hw_addr(),
                 arp_packet.get_operation(),
                 arp_packet.get_target_proto_addr(),
                 arp_packet.get_sender_proto_addr(),
                 arp_packet.get_hardware_type(),
-                arp_packet.get_proto_addr_len()
+                arp_packet.get_proto_addr_len(),
+                arp_packet.packet().len()
             );
             Layer3Infos {
-                ip_source: arp_packet.get_target_proto_addr().to_string(),
-                ip_destination: arp_packet.get_target_proto_addr().to_string(),
-                l_4_protocol: String::from("N/A"),
+                ip_source: Some(arp_packet.get_target_proto_addr().to_string()),
+                ip_destination: Some(arp_packet.get_target_proto_addr().to_string()),
+                l_4_protocol: Default::default(),
                 layer_4_infos: Layer4Infos {
-                    port_source: String::from("N/A"),
-                    port_destination: String::from("N/A"),
+                    port_source: None,
+                    port_destination: None,
+                     
                 },
             }
         } else {
             // Handle the case when the data is not a valid IPv4 packet
-            Layer3Infos {
-                ip_source: String::from("N/A"),
-                ip_destination: String::from("N/A"),
-                l_4_protocol: String::from("N/A"),
-                layer_4_infos: Layer4Infos {
-                    port_source: String::from("N/A"),
-                    port_destination: String::from("N/A"),
-                },
-            }
+            Default::default()
         }
     }
 }
@@ -135,15 +112,7 @@ pub fn get_layer_3_infos(ethernet_packet: &EthernetPacket<'_>) -> Layer3Infos{
                 "Unknown or unsupported packet type: {:?}",
                 ethernet_packet.get_ethertype()
             );
-            Layer3Infos {
-                ip_source: String::from("N/A"),
-                ip_destination: String::from("N/A"),
-                l_4_protocol: String::from("N/A"),
-                layer_4_infos: Layer4Infos {
-                    port_source: String::from("N/A"),
-                    port_destination: String::from("N/A"),
-                },
-            }
+            Default::default()
         }
     }
 }

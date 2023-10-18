@@ -1,73 +1,66 @@
+use pnet::packet::Packet;
 use pnet::packet::tcp::TcpPacket;
 use pnet::packet::udp::UdpPacket;
 use pnet::packet::ip::{IpNextHeaderProtocols, IpNextHeaderProtocol};
+use pnet::packet::dhcp::DhcpPacket;
 
+
+#[derive(Debug, Default)]
 pub struct Layer4Infos {
-    pub port_source: String,
-    pub port_destination: String,
-}
-enum Layer4Paket<'a> {
-    Tcp(TcpPacket<'a>),
-    Udp(UdpPacket<'a>)
-}
-struct TcpHandler;
-struct UdpHandler;
-
-trait HandlePacketTypes {
-    fn get_layer_4(data: &[u8]) -> Layer4Infos;
+    pub port_source: Option<String>,
+    pub port_destination: Option<String>,
 }
 
-impl HandlePacketTypes for TcpHandler {
-    fn get_layer_4(data: &[u8]) -> Layer4Infos {
-        if let Some(l_4) = TcpPacket::new(data) {
-            get_port_from_tcp_packet(l_4)
-        } else {
-            get_n_a_4_info()
+trait PacketPorts {
+    fn ports(&self) -> Layer4Infos;
+}
+
+impl PacketPorts for TcpPacket<'_> {
+    fn ports(&self) -> Layer4Infos {
+        Layer4Infos {
+            port_source: Some(self.get_source().to_string()),
+            port_destination: Some(self.get_destination().to_string()),
         }
     }
 }
 
-impl HandlePacketTypes for UdpHandler {
-    fn get_layer_4(data: &[u8]) -> Layer4Infos {
-        if let Some(l_4) = UdpPacket::new(data) {
-            get_port_from_udp_packet(l_4)
-        } else {
-            get_n_a_4_info()
+impl PacketPorts for UdpPacket<'_> {
+    fn ports(&self) -> Layer4Infos {
+        Layer4Infos {
+            port_source: Some(self.get_source().to_string()),
+            port_destination: Some(self.get_destination().to_string()),
         }
     }
 }
 
-fn get_port_from_udp_packet(l_4: UdpPacket) -> Layer4Infos{
-    Layer4Infos {
-        port_source: l_4.get_source().to_string(),
-        port_destination: l_4.get_destination().to_string(),
-    }
-}
-
-fn get_port_from_tcp_packet(l_4: TcpPacket) -> Layer4Infos{
-    Layer4Infos {
-        port_source: l_4.get_source().to_string(),
-        port_destination: l_4.get_destination().to_string(),
-    }
-}
-fn get_n_a_4_info() -> Layer4Infos {
-    Layer4Infos {
-        port_source: String::from("N/A"),
-        port_destination: String::from("N/A"),
-    }
-}
-
-pub fn get_layer_4_infos(proto: IpNextHeaderProtocol, data: &[u8]) -> Layer4Infos{
+pub fn get_layer_4_infos(proto: IpNextHeaderProtocol, data: &[u8]) -> Layer4Infos {
     match proto {
-        IpNextHeaderProtocols::Tcp => TcpHandler::get_layer_4(data),
-        IpNextHeaderProtocols::Udp => UdpHandler::get_layer_4(data),
+        IpNextHeaderProtocols::Tcp => {
+            if let Some(tcp_packet) = TcpPacket::new(data) {
+                if let Some(hotop_packet) = DhcpPacket::new(tcp_packet.payload()) {
+                    println!("{:?}",hotop_packet.get_file());
+                }
+
+                tcp_packet.ports()
+            } else {
+                Default::default()
+            }
+        }
+        IpNextHeaderProtocols::Udp => {
+            if let Some(udp_packet) = UdpPacket::new(data) {
+                udp_packet.ports()
+            } else {
+                Default::default()
+            }
+        }
+
         _ => {
             // General case for all other EtherTypes
             println!(
                 "Unknown or unsupported packet type: {:?}",
                 proto.to_string()
             );
-            get_n_a_4_info()
+            Default::default()
         }
     }
 }
